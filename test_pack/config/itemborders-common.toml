@@ -1,0 +1,18 @@
+
+#Client Configuration
+[client]
+
+	[client.options]
+		# If the hotbar should display item borders.
+		hotbar = true
+		# If item borders should show for common items.
+		show_for_common = true
+		# If the borders should have square corners.
+		square_corners = true
+		# If automatic borders (based on item rarity) should be enabled.
+		auto_borders = true
+		# Custom border colors for specific items.  Format: { <color> = "item name or #tag", <color> = ["list of item names or tags"]}.  Example: { FCC040 = ["minecraft:stick", "torch"], lime = "#ores"]}
+		manual_borders = {}
+		# If border colors should sync with loot beam colors. (From Loot Beams mod--any custom beams colors specified in Loot Beams configuration will be displayed as borders.)
+		loot_beam_sync = true
+

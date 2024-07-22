@@ -1,0 +1,8 @@
+
+["Adventure mod settings"]
+	#Sets the dragon difficulty modifier, the higher the more difficult the dragon gets. Roughly set it to the amount of players. default:2, vanilla:0
+	#Range: 0 ~ 100
+	dragonDifficulty = 2
+	#Prints the dragon phase in chat if enabled: default:false
+	printDragonPhases = false
+
