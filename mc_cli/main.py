@@ -4,20 +4,22 @@ import os
 import argparse
 
 # Define constants
-CURSEFORGE_API_BASE = 'https://cfw2.modrinth.com'
-DOWNLOAD_DIR = 'downloads'
+CURSEFORGE_API_BASE = "https://curseforge.com/api/v1"
+
+def format_forge_download_uri(minecraft_ver,forge_ver):
+    return f"https://maven.minecraftforge.net/net/minecraftforge/forge/{minecraft_ver}-{forge_ver}/forge-{minecraft_ver}-{forge_ver}-installer.jarDOWNLOAD_DIR = 'downloads'"
 
 # Function to download a file from CurseForge
 def download_file(project_id, file_id):
     # Construct the URL to download the file
-    download_url = f"{CURSEFORGE_API_BASE}/projects/{project_id}/files/{file_id}/download"
+    download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
     
     # Create the directory if it doesn't exist
     if not os.path.exists(DOWNLOAD_DIR):
         os.makedirs(DOWNLOAD_DIR)
     
     # Send a GET request to download the file
-    response = requests.get(download_url, stream=True)
+    response = requests.get(download_url)
     
     if response.status_code == 200:
         file_path = os.path.join(DOWNLOAD_DIR, f"{project_id}_{file_id}.jar")
@@ -26,7 +28,7 @@ def download_file(project_id, file_id):
                 file.write(chunk)
         print(f"Downloaded {file_path}")
     else:
-        print(f"Failed to download file {project_id}_{file_id}: {response.status_code}")
+        print(f"Failed to download file {download_url}: {response.status_code}")
 
 # Function to load and parse JSON data from a file
 def load_json_from_file(filename):
