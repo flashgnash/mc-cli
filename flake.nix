@@ -36,6 +36,8 @@
           poetry
 
           linuxHeaders
+
+          jre8
         ];
       };
       
