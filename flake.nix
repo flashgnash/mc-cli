@@ -26,7 +26,7 @@
         default = {
           type = "app";
           # replace <script> with the name in the [tool.poetry.scripts] section of your pyproject.toml
-          program = "${myPythonApp}/bin/mc-cli";
+          program = "${myPythonApp}/bin/mc-installer";
         };      
       };
            
