@@ -31,6 +31,12 @@ def download_forge(dir_path,minecraft_ver,forge_ver):
     else:
         print(f"Failed to download forge from uri {download_url}")
 
+
+def download_with_browser(project_id,file_id):
+    project_uri = f"https://www.curseforge.com/projects/{project_id}"
+    project_response = requests.get(project_uri,allow_redirects = True)
+    print(project_response.url)
+
 def download_mod(mods_path,project_id, file_id):
     download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
     
@@ -38,6 +44,9 @@ def download_mod(mods_path,project_id, file_id):
         os.makedirs(mods_path)
     
     response = requests.get(download_url,allow_redirects = True)
+
+    if(response.status_code == 404):
+        response = download_with_browser(project_id,file_id)
     
     if response.status_code == 200:
         final_url = response.url;        
