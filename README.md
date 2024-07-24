@@ -2,8 +2,11 @@
 
 ## Installation
 
+### General
 To install, run pip install git+https://github.com/flashgnash/mc-installer
 
+### Nix/Nixos
+With nix or nixos installed, installation is not neccesary. To run, you can use ``nix run github:flashgnash/mc-installer /path/to/manifest.json``
 
 ## Usage:
 To run, find the manifest.json from your modpack install zip (can be downloaded from a modpack's page on curseforge)
