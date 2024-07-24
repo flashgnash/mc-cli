@@ -1,7 +1,7 @@
 
 [tool.poetry]
 name = "mc-installer"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["flashgnash"]
 readme = "README.md"
@@ -12,7 +12,7 @@ requests = "^2.32.3"
 tqdm = "^4.66.4"
 
 [tool.poetry.scripts]
-mc-installer = "mc_cli.main:main"
+mc-installer = "mc_installer.main:main"
 
 [build-system]
 requires = ["poetry-core"]
