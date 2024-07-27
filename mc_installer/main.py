@@ -34,31 +34,34 @@ def download_forge(dir_path,minecraft_ver,forge_ver):
 
 def download_with_browser(project_id,file_id):
     project_uri = f"https://www.curseforge.com/projects/{project_id}"
-    project_response = requests.get(project_uri,allow_redirects = True)
-    print(project_response.url)
+    # project_response = requests.get(project_uri,allow_redirects = True)
+    print(f"{project_uri} has API access disabled. Please download it manually")
 
 def download_mod(mods_path,project_id, file_id):
-    download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
+    try:
+        download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
     
-    if not os.path.exists(mods_path):
-        os.makedirs(mods_path)
+        if not os.path.exists(mods_path):
+            os.makedirs(mods_path)
     
-    response = requests.get(download_url,allow_redirects = True)
-
-    if(response.status_code == 404):
-        response = download_with_browser(project_id,file_id)
+        response = requests.get(download_url,allow_redirects = True)
+        if(response == None):
+            raise Exception(f"Response for {download_url} was None!")
+        if(response.status_code == 404):
+            response = download_with_browser(project_id,file_id)
     
-    if response.status_code == 200:
-        final_url = response.url;        
-        filename = final_url.split("/")[-1]
+        if response.status_code == 200:
+            final_url = response.url;        
+            filename = final_url.split("/")[-1]
 
-        file_path = os.path.join(mods_path, filename)
-        with open(file_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                file.write(chunk)
-    else:
-        print(f"Failed to download file {download_url}: {response.status_code}")
-
+            file_path = os.path.join(mods_path, filename)
+            with open(file_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+        else:
+            print(f"Failed to download file {download_url}: {response.status_code}")
+    except Exception as e:
+        print(e)
 def extract_loader_version(data):
     minecraft_info = data.get("minecraft", {})
     version = minecraft_info.get("version")
