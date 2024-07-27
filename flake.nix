@@ -1,7 +1,5 @@
-# file: flake.nix
 {
-  description = "Macros for dragon block C";
-
+  description = "Minecraft server installer CLI";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -11,35 +9,39 @@
     };
   };
 
-  outputs = { self, nixpkgs, poetry2nix }:
-    let
-      system = "x86_64-linux";
+  outputs = { self, nixpkgs, poetry2nix }: let
+    systems = [ "x86_64-linux" "aarch64-linux" ];
+    forAllSystems = f: builtins.listToAttrs (map (system: { name = system; value = f system; }) systems);
 
+    mkPoetryAppFor = system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      # create a custom "mkPoetryApplication" API function that under the hood uses
-      # the packages and versions (python3, poetry etc.) from our pinned nixpkgs above:
       inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
-      myPythonApp = mkPoetryApplication { projectDir = ./.; };
     in
-    {
-      apps.${system} = {
-        default = {
-          type = "app";
-          # replace <script> with the name in the [tool.poetry.scripts] section of your pyproject.toml
-          program = "${myPythonApp}/bin/mc-installer";
-        };      
-      };
-           
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [
-          nodePackages.prettier
-          poetry
+      mkPoetryApplication { projectDir = ./.; };
 
-          linuxHeaders
-
-          jre8
-        ];
+    appsFor = system: {
+      default = {
+        type = "app";
+        program = "${mkPoetryAppFor system}/bin/mc-installer";
       };
-      
     };
+
+    devShellFor = system: let
+      pkgs = nixpkgs.legacyPackages.${system};
+    in pkgs.mkShell {
+      packages = with pkgs; [
+        nodePackages.prettier
+        poetry
+        linuxHeaders
+        jre8
+      ];
+    };
+  in
+  {
+    packages = forAllSystems (system: mkPoetryAppFor system);
+    apps = forAllSystems appsFor;
+    devShells = forAllSystems (system: {
+      default = devShellFor system;
+    });
+  };
 }
