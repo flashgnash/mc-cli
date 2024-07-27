@@ -3,7 +3,7 @@ import requests
 import os
 import argparse
 from tqdm import *
-
+import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -19,7 +19,7 @@ def download_forge(dir_path,minecraft_ver,forge_ver):
 
     response = requests.get(download_url,allow_redirects = True)
 
-    
+    file_path = None
     if response.status_code == 200:
         final_url = response.url;        
         filename = final_url.split("/")[-1]
@@ -28,40 +28,47 @@ def download_forge(dir_path,minecraft_ver,forge_ver):
         with open(file_path, 'wb') as file:
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
+        return os.path.abspath(file_path)
     else:
         print(f"Failed to download forge from uri {download_url}")
+        return None
+def install_forge(installer_path,dir_path):
+    if not os.path.exists(installer_path):
+        print("Forge executable not found")
+        return
+
+    command = ["java","-jar",installer_path,"--installServer"]
+
+    subprocess.run(command,cwd=dir_path)
 
 
 def download_with_browser(project_id,file_id):
     project_uri = f"https://www.curseforge.com/projects/{project_id}"
     # project_response = requests.get(project_uri,allow_redirects = True)
-    print(f"{project_uri} has API access disabled. Please download it manually")
+    raise Exception(f"{project_uri} has API access disabled. Please download it manually")
 
 def download_mod(mods_path,project_id, file_id):
-    try:
-        download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
-    
-        if not os.path.exists(mods_path):
-            os.makedirs(mods_path)
-    
-        response = requests.get(download_url,allow_redirects = True)
-        if(response == None):
-            raise Exception(f"Response for {download_url} was None!")
-        if(response.status_code == 404):
-            response = download_with_browser(project_id,file_id)
-    
-        if response.status_code == 200:
-            final_url = response.url;        
-            filename = final_url.split("/")[-1]
+    download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
 
-            file_path = os.path.join(mods_path, filename)
-            with open(file_path, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
-        else:
-            print(f"Failed to download file {download_url}: {response.status_code}")
-    except Exception as e:
-        print(e)
+    if not os.path.exists(mods_path):
+        os.makedirs(mods_path)
+
+    response = requests.get(download_url,allow_redirects = True)
+    if(response == None):
+        raise Exception(f"Response for {download_url} was None!")
+    if(response.status_code == 404):
+        response = download_with_browser(project_id,file_id)
+
+    if response.status_code == 200:
+        final_url = response.url;        
+        filename = final_url.split("/")[-1]
+
+        file_path = os.path.join(mods_path, filename)
+        with open(file_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+    else:
+        print(f"Failed to download file {download_url}: {response.status_code}")
 def extract_loader_version(data):
     minecraft_info = data.get("minecraft", {})
     version = minecraft_info.get("version")
@@ -77,11 +84,18 @@ def extract_loader_version(data):
 
 def main():
     parser = argparse.ArgumentParser(description='Download files referenced in a JSON file.')
-    parser.add_argument('json_file', type=str, help='Path to the JSON file')
+    parser.add_argument('manifest_file', type=str, help='Path to the JSON file')
+
+
+    parser.add_argument('--skip-mods', action='store_true', help='Use to skip the mod download phase')
+    parser.add_argument('--skip-forge-install', action='store_true', help='Use to skip the mod download phase')
+    
     args = parser.parse_args()
+
     
-    json_filename = args.json_file
-    
+    json_filename = args.manifest_file
+    skip_mods = args.skip_mods
+    skip_forge_install = args.skip_forge_install
     try:
         data = None
         with open(json_filename, 'r') as file:
@@ -100,25 +114,44 @@ def main():
 
     output_dir = data.get('name')+data.get('version')
 
-    download_forge(output_dir,minecraft_ver = game_version,forge_ver = loader_version)
+    forge_path = download_forge(output_dir,minecraft_ver = game_version,forge_ver = loader_version)
+
+    if forge_path != None:
+        print(f"Forge downloaded to {forge_path}")
+
+        if not skip_forge_install:
+            print("Installing forge...")
+            install_forge(forge_path,output_dir)
+        
+    
+
     
     files = data.get('files', [])
 
     
     
+    if not skip_mods:
+        # Use ThreadPoolExecutor to download files concurrently
+        errors = []
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = []
+            for file_info in files:
+                project_id = file_info.get('projectID')
+                file_id = file_info.get('fileID')
+                if project_id and file_id:
+                    futures.append(executor.submit(download_mod, f"{output_dir}/mods/", project_id, file_id))
+                else:
+                    print(f"Invalid file information: {file_info}")
 
-    # Use ThreadPoolExecutor to download files concurrently
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = []
-        for file_info in files:
-            project_id = file_info.get('projectID')
-            file_id = file_info.get('fileID')
-            if project_id and file_id:
-                futures.append(executor.submit(download_mod, f"{output_dir}/mods/", project_id, file_id))
-            else:
-                print(f"Invalid file information: {file_info}")
-
-        for future in tqdm(as_completed(futures), total=len(futures), desc="Downloading mods..."):
-            future.result()  # Wait for all futures to complete
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Downloading mods..."):
+                try:
+                    future.result()  # Wait for all futures to complete
+                except Exception as e:
+                    errors.append(e)
+        if len(errors) > 0:
+            print("Errors while downloading:")
+            for error in errors:
+                print(error)
+                    
 if __name__ == "__main__":
     main()
