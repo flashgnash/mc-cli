@@ -47,13 +47,20 @@ def download_with_browser(project_id,file_id):
     # project_response = requests.get(project_uri,allow_redirects = True)
     raise Exception(f"{project_uri} has API access disabled. Please download it manually")
 
-def download_mod(mods_path,project_id, file_id):
+def download_mod(mods_path,project_id, file_id, verbose = False):
     download_url = f"{CURSEFORGE_API_BASE}/mods/{project_id}/files/{file_id}/download"
+
+    if verbose:
+        tqdm.write(f"Downloading {download_url}...")
 
     if not os.path.exists(mods_path):
         os.makedirs(mods_path)
 
     response = requests.get(download_url,allow_redirects = True)
+
+    if verbose:
+        tqdm.write(response)
+    
     if(response == None):
         raise Exception(f"Response for {download_url} was None!")
     if(response.status_code == 404):
@@ -68,7 +75,7 @@ def download_mod(mods_path,project_id, file_id):
             for chunk in response.iter_content(chunk_size=8192):
                 file.write(chunk)
     else:
-        print(f"Failed to download file {download_url}: {response.status_code}")
+        raise Exception(f"Failed to download file {download_url}: {response.status_code}")
 def extract_loader_version(data):
     minecraft_info = data.get("minecraft", {})
     version = minecraft_info.get("version")
@@ -89,6 +96,9 @@ def main():
 
     parser.add_argument('--skip-mods', action='store_true', help='Use to skip the mod download phase')
     parser.add_argument('--skip-forge-install', action='store_true', help='Use to skip the mod download phase')
+
+
+    parser.add_argument('--verbose', action='store_true', help='Use to skip the mod download phase')
     
     args = parser.parse_args()
 
@@ -96,6 +106,11 @@ def main():
     json_filename = args.manifest_file
     skip_mods = args.skip_mods
     skip_forge_install = args.skip_forge_install
+
+    verbose = args.verbose
+
+
+    
     try:
         data = None
         with open(json_filename, 'r') as file:
@@ -139,7 +154,7 @@ def main():
                 project_id = file_info.get('projectID')
                 file_id = file_info.get('fileID')
                 if project_id and file_id:
-                    futures.append(executor.submit(download_mod, f"{output_dir}/mods/", project_id, file_id))
+                    futures.append(executor.submit(download_mod, f"{output_dir}/mods/", project_id, file_id, verbose))
                 else:
                     print(f"Invalid file information: {file_info}")
 
