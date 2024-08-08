@@ -5,3 +5,4 @@ mc_cli/__pycache__/main.cpython-312.pyc
 mc_installer/__pycache__
 installer.log
 test-server
+dist
