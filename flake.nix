@@ -32,6 +32,7 @@
       packages = with pkgs; [
         nodePackages.prettier
         poetry
+        python312Packages.pip
         linuxHeaders
         jre8
       ];
